@@ -1,6 +1,6 @@
 package com.example.comeback.ui.todo.screens
 
-import android.util.Log
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,19 +28,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.comeback.ui.theme.AppGreen
-import com.example.comeback.ui.todo.data.ToDo
 import com.example.comeback.ui.todo.screens.components.ToDoItem
+import com.example.comeback.ui.todo.viewmodel.ToDoViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.comeback.ui.todo.event.ToDoEvent
+
 
 @Composable
-fun ToDoListAScreen(modifier: Modifier = Modifier) {
+fun ToDoListAScreen(
+    modifier: Modifier = Modifier,
+    viewModel: ToDoViewModel = viewModel()
+    ) {
 
-    var toDoList by rememberSaveable { mutableStateOf(listOf<ToDo>()) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val toDoList = uiState.todos
     var newToDo by rememberSaveable { mutableStateOf("") }
     val completedTasks = toDoList.filter { it.isChecked }
-    val unCompletedTasks = toDoList.filter { !it.isChecked }
+    val incompletedTasks = toDoList.filter { !it.isChecked }
 
 
     Column(
@@ -69,7 +77,7 @@ fun ToDoListAScreen(modifier: Modifier = Modifier) {
             Button(
                 onClick = {
                     if (newToDo.isNotBlank()) {
-                        toDoList = toDoList + ToDo(newToDo)
+                        viewModel.onEvent(ToDoEvent.AddToDo(newToDo))
                         newToDo = ""
                     }
                 }, colors = ButtonDefaults.buttonColors(
@@ -83,23 +91,23 @@ fun ToDoListAScreen(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(32.dp))
 
         LazyColumn {
-            if (unCompletedTasks.isNotEmpty()) {
+            if (incompletedTasks.isNotEmpty()) {
                 item {
                     Text(
-                        text = "${toDoList.size - completedTasks.size} Incomplete Tasks",
+                        text = "${incompletedTasks.size} Incomplete Tasks",
                         style = MaterialTheme.typography.titleMedium,
-                        textDecoration = TextDecoration.Underline
+                       // textDecoration = TextDecoration.Underline
                     )
                 }
-                items(unCompletedTasks) { todo ->
+                items(incompletedTasks) { todo ->
                     ToDoItem(
                         todo = todo,
 
                         onCheckedChange = { isChecked ->
-                            toDoList = updateToDo(toDoList, todo, isChecked)
+                            viewModel.onEvent(ToDoEvent.UpdateToDo(todo, isChecked))
                         },
                         onDelete = {
-                            toDoList = toDoList - todo
+                            viewModel.onEvent(ToDoEvent.DeleteToDo(todo))
                         }
                     )
                 }
@@ -109,7 +117,7 @@ fun ToDoListAScreen(modifier: Modifier = Modifier) {
                     Text(
                         text = "${completedTasks.size} Completed Tasks",
                         style = MaterialTheme.typography.titleMedium,
-                        textDecoration = TextDecoration.Underline
+                       // textDecoration = TextDecoration.Underline
                     )
                 }
                 items(completedTasks) { todo ->
@@ -117,27 +125,31 @@ fun ToDoListAScreen(modifier: Modifier = Modifier) {
                         todo = todo,
 
                         onCheckedChange = { isChecked ->
-                            toDoList = updateToDo(toDoList, todo, isChecked)
+                            viewModel.onEvent(ToDoEvent.UpdateToDo(todo, isChecked))
                         },
                         onDelete = {
-                            toDoList = toDoList - todo
+                            viewModel.onEvent(ToDoEvent.DeleteToDo(todo))
                         }
                     )
 
                 }
+                item {
+                    TextButton(
+                        onClick = {
+                            viewModel.onEvent(
+                                ToDoEvent.ClearCompleteToDo
+                            )
+                        }
+                    ) {
+                        Text("Clear Completed")
+                    }
+                }
             }
 
+
+
         }
+
     }
 }
 
-fun updateToDo(
-    toDoList: List<ToDo>,
-    todo: ToDo,
-    isChecked: Boolean
-): List<ToDo> {
-    return toDoList.map {
-        if (it == todo) it.copy(isChecked = isChecked)
-        else it
-    }
-}
