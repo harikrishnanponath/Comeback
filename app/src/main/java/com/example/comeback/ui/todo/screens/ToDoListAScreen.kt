@@ -17,9 +17,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -34,14 +36,18 @@ import com.example.comeback.ui.theme.AppGreen
 import com.example.comeback.ui.todo.screens.components.ToDoItem
 import com.example.comeback.ui.todo.viewmodel.ToDoViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.comeback.ui.todo.data.ToDo
 import com.example.comeback.ui.todo.event.ToDoEvent
+import com.example.comeback.ui.todo.event.ToDoUiEvent
+import androidx.compose.material3.AlertDialog
 
 
 @Composable
 fun ToDoListAScreen(
     modifier: Modifier = Modifier,
-    viewModel: ToDoViewModel = viewModel()
-    ) {
+    viewModel: ToDoViewModel = viewModel(),
+    snackbarHostState: SnackbarHostState
+) {
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val toDoList = uiState.todos
@@ -49,7 +55,59 @@ fun ToDoListAScreen(
     val completedTasks = toDoList.filter { it.isChecked }
     val incompletedTasks = toDoList.filter { !it.isChecked }
 
+    var todoToDelete by rememberSaveable {
+        mutableStateOf<ToDo?>(null)
+    }
 
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when(event){
+                is ToDoUiEvent.ShowSnackbar -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+            }
+        }
+    }
+
+    if (todoToDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                todoToDelete = null
+            },
+
+            title = {
+                Text("Delete Task")
+            },
+
+            text = {
+                Text("Are you sure you want to delete " +
+                        "\"${todoToDelete?.text}\"?")
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.onEvent(ToDoEvent.DeleteToDo(todoToDelete!!))
+
+                        todoToDelete = null
+                    }
+                ){
+                    Text("Delete")
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        todoToDelete = null
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -107,11 +165,12 @@ fun ToDoListAScreen(
                             viewModel.onEvent(ToDoEvent.UpdateToDo(todo, isChecked))
                         },
                         onDelete = {
-                            viewModel.onEvent(ToDoEvent.DeleteToDo(todo))
+                            todoToDelete = todo
                         }
                     )
                 }
             }
+
             if (completedTasks.isNotEmpty()) {
                 item {
                     Text(
@@ -152,4 +211,5 @@ fun ToDoListAScreen(
 
     }
 }
+
 
