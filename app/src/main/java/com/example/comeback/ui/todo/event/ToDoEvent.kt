@@ -11,5 +11,9 @@ sealed interface ToDoEvent {
         val isChecked: Boolean
     ) : ToDoEvent
 
+    data class EditToDo(val toDo: ToDo, val editedText: String) : ToDoEvent
+
+    data class RestoreToDo(val toDo: ToDo) : ToDoEvent
+
     data object ClearCompleteToDo: ToDoEvent
 }

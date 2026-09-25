@@ -31,7 +31,7 @@ class ToDoViewModel : ViewModel() {
 
         _uiState.update { currentList ->
                 currentList.copy(
-                    todos = currentList.todos + ToDo(toDoText)
+                    todos = currentList.todos + ToDo(text = toDoText)
                 )
         }
 
@@ -62,6 +62,28 @@ class ToDoViewModel : ViewModel() {
         }
     }
 
+    fun editToDo(toDo: ToDo, editedText: String) {
+
+        if (editedText.isBlank()) return
+        if (editedText == toDo.text) return
+
+        _uiState.update { currentList ->
+            currentList.copy(
+                todos = currentList.todos.map {
+                    if (it == toDo) {
+                        it.copy(text = editedText)
+                    } else {
+                        it
+                    }
+                }
+            )
+    }
+
+        viewModelScope.launch {
+            _uiEvent.emit(ToDoUiEvent.ShowSnackbar("Task Updated"))
+        }
+    }
+
     fun onEvent(event: ToDoEvent) {
         when (event) {
             is ToDoEvent.AddToDo -> {
@@ -74,6 +96,21 @@ class ToDoViewModel : ViewModel() {
             is ToDoEvent.UpdateToDo -> {
                 updateTodo(event.toDo, event.isChecked)
             }
+            is ToDoEvent.EditToDo -> {
+                editToDo(
+                    toDo = event.toDo,
+                    editedText = event.editedText
+                )
+            }
+
+            is ToDoEvent.RestoreToDo -> {
+                _uiState.update { currentList ->
+                    currentList.copy(
+                        todos = currentList.todos + event.toDo
+                    )
+                }
+            }
+
             is ToDoEvent.ClearCompleteToDo -> {
                 _uiState.update { currentList ->
                     currentList.copy(
