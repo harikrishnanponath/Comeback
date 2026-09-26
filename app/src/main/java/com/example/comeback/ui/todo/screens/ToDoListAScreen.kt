@@ -71,7 +71,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ToDoListAScreen(
     modifier: Modifier = Modifier,
-    viewModel: ToDoViewModel = viewModel(),
+    viewModel: ToDoViewModel,
     snackbarHostState: SnackbarHostState
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

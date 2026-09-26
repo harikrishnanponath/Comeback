@@ -4,6 +4,7 @@ package com.example.comeback.ui.todo.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.comeback.ui.todo.data.ToDo
+import com.example.comeback.ui.todo.data.ToDoRepository
 import com.example.comeback.ui.todo.data.ToDoUiState
 import com.example.comeback.ui.todo.event.ToDoEvent
 import com.example.comeback.ui.todo.event.ToDoUiEvent
@@ -16,7 +17,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.collections.emptyList
 
-class ToDoViewModel : ViewModel() {
+class ToDoViewModel(
+    private val toDoRepository: ToDoRepository
+) : ViewModel() {
 
 
     private val _uiState = MutableStateFlow(ToDoUiState())
@@ -26,60 +29,57 @@ class ToDoViewModel : ViewModel() {
     val uiEvent = _uiEvent.asSharedFlow()
 
 
+    init {
+        viewModelScope.launch {
+            toDoRepository.todos.collect { todos ->
+                _uiState.update {
+                    it.copy(todos = todos)
+                }
+            }
+        }
+    }
+
+
     fun addToDo(toDoText: String) {
         if (toDoText.isBlank()) return
-
-        _uiState.update { currentList ->
-                currentList.copy(
-                    todos = currentList.todos + ToDo(text = toDoText)
-                )
-        }
+        val todo = ToDo(text = toDoText)
 
         viewModelScope.launch {
+            toDoRepository.addTodo(todo)
             _uiEvent.emit(ToDoUiEvent.ShowSnackbar("Task Added"))
         }
     }
 
     fun deleteToDo(toDo: ToDo) {
-        _uiState.update { currentList ->
-            currentList.copy(
-                todos = currentList.todos - toDo
-            )
+
+        viewModelScope.launch {
+            toDoRepository.deleteTodo(toDo)
         }
     }
 
     fun updateTodo(todo: ToDo, isChecked: Boolean) {
-        _uiState.update { currentList ->
-            currentList.copy(
-                todos = currentList.todos.map {
-                    if (it == todo) {
-                        it.copy(isChecked = isChecked)
-                    } else {
-                        it
-                    }
-                }
+
+        viewModelScope.launch {
+            val updatedTodo = todo.copy(
+                isChecked = isChecked
             )
+            toDoRepository.updateTodo(updatedTodo)
         }
     }
 
     fun editToDo(toDo: ToDo, editedText: String) {
 
-        if (editedText.isBlank()) return
-        if (editedText == toDo.text) return
+        val newText = editedText.trim()
 
-        _uiState.update { currentList ->
-            currentList.copy(
-                todos = currentList.todos.map {
-                    if (it == toDo) {
-                        it.copy(text = editedText)
-                    } else {
-                        it
-                    }
-                }
-            )
-    }
+        if (newText.isBlank()) return
+        if (newText == toDo.text.trim()) return
+
+        val updatedTodo = toDo.copy(
+            text = newText
+        )
 
         viewModelScope.launch {
+            toDoRepository.updateTodo(updatedTodo)
             _uiEvent.emit(ToDoUiEvent.ShowSnackbar("Task Updated"))
         }
     }
@@ -104,21 +104,14 @@ class ToDoViewModel : ViewModel() {
             }
 
             is ToDoEvent.RestoreToDo -> {
-                _uiState.update { currentList ->
-                    currentList.copy(
-                        todos = currentList.todos + event.toDo
-                    )
+                viewModelScope.launch {
+                    toDoRepository.addTodo(event.toDo)
                 }
             }
 
             is ToDoEvent.ClearCompleteToDo -> {
-                _uiState.update { currentList ->
-                    currentList.copy(
-                        todos = currentList.todos.filter { !it.isChecked }
-                    )
-                }
-
                 viewModelScope.launch {
+                    toDoRepository.deleteCompletedTodos()
                     _uiEvent.emit(ToDoUiEvent.ShowSnackbar("Completed Tasks Cleared"))
                 }
             }

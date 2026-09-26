@@ -15,15 +15,32 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.comeback.ui.todo.screens.ToDoListAScreen
 import com.example.comeback.ui.theme.ComebackTheme
+import com.example.comeback.ui.todo.data.DatabaseProvider
+import com.example.comeback.ui.todo.data.ToDoRepository
+import com.example.comeback.ui.todo.viewmodel.ToDoViewModel
+import com.example.comeback.ui.todo.viewmodel.ToDoViewModelFactory
 
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val database = DatabaseProvider.provideDatabase(applicationContext)
+        val repository = ToDoRepository(database.todoDao())
+        val factory = ToDoViewModelFactory(repository)
+
+
+
         enableEdgeToEdge()
         setContent {
+
+            val viewModel: ToDoViewModel = viewModel(
+                factory = factory
+            )
+
             ComebackTheme {
 
                 val snackbarHostState = remember {
@@ -39,26 +56,11 @@ class MainActivity : ComponentActivity() {
 
                     ToDoListAScreen(
                         modifier = Modifier.padding(innerPadding),
-                        snackbarHostState = snackbarHostState
+                        snackbarHostState = snackbarHostState,
+                        viewModel = viewModel
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    ComebackTheme {
-        Greeting("Android", modifier = Modifier.padding(4.dp))
     }
 }
