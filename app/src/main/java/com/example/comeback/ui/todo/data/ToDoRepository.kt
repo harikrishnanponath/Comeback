@@ -1,8 +1,9 @@
 package com.example.comeback.ui.todo.data
 
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
-class ToDoRepository(
+class ToDoRepository @Inject constructor(
     private val toDoDao: ToDoDao
 ) {
 

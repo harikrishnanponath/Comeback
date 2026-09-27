@@ -8,6 +8,8 @@ import com.example.comeback.ui.todo.data.ToDoRepository
 import com.example.comeback.ui.todo.data.ToDoUiState
 import com.example.comeback.ui.todo.event.ToDoEvent
 import com.example.comeback.ui.todo.event.ToDoUiEvent
+import dagger.hilt.android.lifecycle.HiltViewModel
+import jakarta.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -17,7 +19,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.collections.emptyList
 
-class ToDoViewModel(
+@HiltViewModel
+class ToDoViewModel @Inject constructor(
     private val toDoRepository: ToDoRepository
 ) : ViewModel() {
 
